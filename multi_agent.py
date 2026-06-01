@@ -16,9 +16,13 @@ from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool
 from langchain.agents import create_agent              # ← v1.0 当前写法(取代 create_react_agent)
 from langgraph_supervisor import create_supervisor
-
-
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+import smtplib
+from email.mime.text import MIMEText
+import re
+from openpyxl import Workbook
+from openpyxl.styles import Font
 
 load_dotenv() 
 
@@ -36,38 +40,79 @@ OUTPUT_DIR = "./output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
+
+class EmailInput(BaseModel):
+    to: str = Field(description="收件人邮箱地址")
+    subject: str = Field(description="邮件主题")
+    body: str = Field(description="邮件正文内容")
+
+
 # ----------------------------------------------------------------------
 # 2. 工具(tool):被对应的专家智能体调用。docstring 很重要,LLM 靠它判断怎么用
 # ----------------------------------------------------------------------
 @tool
 def send_email(to: str, subject: str, body: str) -> str:
-    """发送一封纯文本邮件。to=收件人邮箱, subject=邮件主题, body=正文内容。"""
-    import smtplib
-    from email.mime.text import MIMEText
+    """发送一封纯文本邮件。
 
+    参数:
+        to: 收件人邮箱地址,例如 someone@example.com
+        subject: 邮件主题
+        body: 邮件正文内容(纯文本)
+    返回:
+        发送结果说明(成功提示或失败原因)。
+    """
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"] = os.environ["SMTP_USER"]
     msg["To"] = to
-    with smtplib.SMTP_SSL(os.environ["SMTP_HOST"], 465) as s:
-        s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
-        s.send_message(msg)
-    return f"已成功发送邮件给 {to}(主题:{subject})"
+
+    port = int(os.getenv("SMTP_PORT", 465))   # 从 env 读端口,默认 465
+    try:
+        with smtplib.SMTP_SSL(os.environ["SMTP_HOST"], port) as s:
+            s.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
+            s.send_message(msg)
+        return f"已成功发送邮件给 {to}(主题:{subject})"
+    except smtplib.SMTPAuthenticationError:
+        return "发送失败:邮箱认证失败,请检查 SMTP_USER 和授权码(SMTP_PASS)是否正确"
+    except Exception as e:
+        return f"发送失败:{e}"
 
 
 @tool
 def make_excel(filename: str, headers: list[str], rows: list[list]) -> str:
-    """生成一个 Excel 文件。filename=文件名(不含后缀), headers=表头列表, rows=每行数据。返回文件路径。"""
-    from openpyxl import Workbook
+    """生成一个 Excel 文件并返回路径。
 
-    wb = Workbook()
-    ws = wb.active
-    ws.append(headers)
-    for row in rows:
-        ws.append(row)
-    path = os.path.join(OUTPUT_DIR, f"{filename}.xlsx")
-    wb.save(path)
-    return f"Excel 已生成:{path}"
+    参数:
+        filename: 文件名(不含后缀),例如 "sales"
+        headers: 表头列表,例如 ["月份", "销售额"]
+        rows: 二维列表,每个子列表是一行,顺序对应 headers,
+              例如 [["1月", 100], ["2月", 200]]
+    返回:
+        生成结果说明(成功路径或失败原因)。
+    """
+    # 文件名清洗:非法/路径字符替换为 _,防止报错或路径穿越
+    safe_name = re.sub(r"[^\w\-]", "_", filename)
+    path = os.path.join(OUTPUT_DIR, f"{safe_name}.xlsx")
+
+    try:
+        wb = Workbook()
+        ws = wb.active
+
+        # 写表头并加粗
+        ws.append(headers)
+        for cell in ws[1]:
+            cell.font = Font(bold=True)
+
+        # 写数据,逐行校验列数与表头一致
+        for i, row in enumerate(rows, start=1):
+            if len(row) != len(headers):
+                return f"生成失败:第 {i} 行有 {len(row)} 列,与表头 {len(headers)} 列不符"
+            ws.append(row)
+
+        wb.save(path)
+        return f"Excel 已生成:{path}"
+    except Exception as e:
+        return f"生成 Excel 失败:{e}"
 
 
 @tool
