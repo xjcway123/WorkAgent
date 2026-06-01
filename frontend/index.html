@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多智能体服务</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: #1e293b;
+            padding: 16px 24px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        .status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+        }
+
+        .status.offline {
+            background: #ef4444;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            max-width: 90%;
+            width: 90%;
+            margin: 0 auto;
+            padding: 24px;
+            gap: 24px;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 85%;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            text-align: left;
+        }
+
+        .message.user {
+            background: #3b82f6;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            background: #334155;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            text-align: left;
+        }
+
+        .message.assistant .agent-tag {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            margin-bottom: 6px;
+            color: #94a3b8;
+        }
+
+        .message .agent-tag.summarizer { color: #60a5fa; }
+        .message .agent-tag.translator { color: #a78bfa; }
+        .message .agent-tag.emailer { color: #f472b6; }
+        .message .agent-tag.ppt_maker { color: #fbbf24; }
+        .message .agent-tag.excel_maker { color: #34d399; }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #64748b;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+
+        .chat-input {
+            padding: 16px;
+            background: #0f172a;
+            border-top: 1px solid #334155;
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            background: #1e293b;
+            color: #f8fafc;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input input:focus {
+            border-color: #3b82f6;
+        }
+
+        .chat-input button {
+            padding: 12px 24px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-input button:hover:not(:disabled) {
+            background: #2563eb;
+        }
+
+        .chat-input button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+
+        .sidebar {
+            width: 240px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .agents-panel {
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            padding: 16px;
+        }
+
+        .agents-panel h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .agent-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .agent-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .files-panel {
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            padding: 16px;
+            flex: 1;
+        }
+
+        .files-panel h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: #0f172a;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .file-item .icon {
+            color: #60a5fa;
+        }
+
+        .file-item a {
+            color: #60a5fa;
+            text-decoration: none;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-item a:hover {
+            text-decoration: underline;
+        }
+
+        .empty-files {
+            color: #475569;
+            font-size: 12px;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .download-link {
+            color: #22c55e;
+            font-size: 11px;
+            text-decoration: none;
+            padding: 2px 6px;
+            border: 1px solid #22c55e;
+            border-radius: 4px;
+        }
+
+        .download-link:hover {
+            background: #22c55e;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            main {
+                flex-direction: column;
+                padding: 16px;
+            }
+
+            .sidebar {
+                width: 100%;
+                flex-direction: row;
+            }
+
+            .agents-panel, .files-panel {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="status" id="status"></div>
+        <h1>多智能体服务</h1>
+        <span style="color: #64748b; font-size: 13px;">总结 / 翻译 / 发邮件 / 做PPT / 做Excel</span>
+    </header>
+
+    <main>
+        <div class="chat-container">
+            <div class="chat-messages" id="messages">
+                <div class="message assistant">
+<div class="agent-tag">系统</div>您好！我是多智能体助手，可以帮您：
+
+• 总结内容
+• 翻译文本
+• 发送邮件
+• 制作 PPT
+• 制作 Excel
+
+请告诉我您需要什么帮助？
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="输入您的需求..." onkeypress="handleKeyPress(event)">
+                <button id="sendBtn" onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="agents-panel">
+                <h3>专家智能体</h3>
+                <div class="agent-item">
+                    <div class="agent-dot" style="background: #60a5fa;"></div>
+                    <span> summarizer</span>
+                </div>
+                <div class="agent-item">
+                    <div class="agent-dot" style="background: #a78bfa;"></div>
+                    <span> translator</span>
+                </div>
+                <div class="agent-item">
+                    <div class="agent-dot" style="background: #f472b6;"></div>
+                    <span> emailer</span>
+                </div>
+                <div class="agent-item">
+                    <div class="agent-dot" style="background: #fbbf24;"></div>
+                    <span> ppt_maker</span>
+                </div>
+                <div class="agent-item">
+                    <div class="agent-dot" style="background: #34d399;"></div>
+                    <span> excel_maker</span>
+                </div>
+            </div>
+
+            <div class="files-panel">
+                <h3>生成的文件</h3>
+                <div id="filesList">
+                    <div class="empty-files">暂无生成的文件</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentAgent = null;
+        let isStreaming = false;
+
+        const messagesEl = document.getElementById('messages');
+        const inputEl = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusEl = document.getElementById('status');
+
+        async function checkHealth() {
+            try {
+                const res = await fetch(`/health`);
+                if (res.ok) {
+                    statusEl.classList.remove('offline');
+                } else {
+                    statusEl.classList.add('offline');
+                }
+            } catch {
+                statusEl.classList.add('offline');
+            }
+        }
+
+        function addMessage(role, content, agent = null) {
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+
+            if (agent) {
+                const tag = document.createElement('div');
+                tag.className = `agent-tag ${agent}`;
+                tag.textContent = agent;
+                div.appendChild(tag);
+            }
+
+            const text = document.createElement('div');
+            text.textContent = content;
+            div.appendChild(text);
+
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+            return div;
+        }
+
+        function showTyping(agent) {
+            hideTyping();
+            const div = document.createElement('div');
+            div.className = 'message assistant';
+            div.id = 'typing';
+            if (agent) {
+                const tag = document.createElement('div');
+                tag.className = `agent-tag ${agent}`;
+                tag.textContent = agent;
+                div.appendChild(tag);
+            }
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.innerHTML = '<span></span><span></span><span></span>';
+            div.appendChild(indicator);
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function hideTyping() {
+            const typing = document.getElementById('typing');
+            if (typing) typing.remove();
+        }
+
+        async function sendMessage() {
+            const message = inputEl.value.trim();
+            if (!message || isStreaming) return;
+
+            isStreaming = true;
+            sendBtn.disabled = true;
+            inputEl.value = '';
+
+            addMessage('user', message);
+            showTyping();
+
+            try {
+                const res = await fetch(`/chat/stream`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                hideTyping();
+
+                const assistantDiv = addMessage('assistant', '');
+                const contentEl = assistantDiv.appendChild(document.createElement('div'));
+                let currentAgent = null;
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const text = decoder.decode(value);
+                    const lines = text.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data === '[DONE]') continue;
+
+                            try {
+                                const json = JSON.parse(data);
+                                if (json.node) {
+                                    currentAgent = json.node;
+                                    assistantDiv.className = `message assistant`;
+                                    const tag = assistantDiv.querySelector('.agent-tag') || document.createElement('div');
+                                    tag.className = `agent-tag ${currentAgent}`;
+                                    tag.textContent = currentAgent;
+                                    if (!assistantDiv.querySelector('.agent-tag')) {
+                                        assistantDiv.insertBefore(tag, assistantDiv.firstChild);
+                                    }
+                                }
+                                if (json.content) {
+                                    contentEl.textContent += json.content;
+                                    messagesEl.scrollTop = messagesEl.scrollHeight;
+                                }
+                                if (json.error) {
+                                    contentEl.textContent = `错误: ${json.error}`;
+                                }
+                            } catch {}
+                        }
+                    }
+                }
+
+                // 检查是否有生成的文件
+                checkForNewFiles();
+
+            } catch (err) {
+                hideTyping();
+                addMessage('assistant', `连接失败: ${err.message}`);
+            } finally {
+                isStreaming = false;
+                sendBtn.disabled = false;
+            }
+        }
+
+        async function checkForNewFiles() {
+            try {
+                const res = await fetch(`/api/files`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const filesList = document.getElementById('filesList');
+
+                    if (data.files && data.files.length > 0) {
+                        filesList.innerHTML = '';
+
+                        data.files.forEach(file => {
+                            const icon = file.type === 'xlsx' ? '📊' : '📽️';
+
+                            const item = document.createElement('div');
+                            item.className = 'file-item';
+                            item.innerHTML = `
+                                <span class="icon">${icon}</span>
+                                <a href="${file.url}" target="_blank">${file.name}</a>
+                                <a href="${file.url}" download class="download-link">下载</a>
+                            `;
+                            filesList.appendChild(item);
+                        });
+                    }
+                }
+            } catch {}
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // 初始化
+        checkHealth();
+        setInterval(checkHealth, 30000);
+        checkForNewFiles();
+    </script>
+</body>
+</html>
