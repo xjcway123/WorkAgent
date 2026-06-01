@@ -18,7 +18,22 @@ Supervisor (主管)
 ├── translator   - 翻译专家
 ├── emailer      - 邮件专家
 ├── ppt_maker    - PPT 专家
-└── excel_maker  - Excel 专家
+└── excel_maker - Excel 专家
+```
+
+## 项目结构
+
+```
+multiagent/
+├── app.py              # FastAPI Web 服务
+├── multi_agent.py      # 多智能体核心逻辑
+├── frontend/
+│   └── index.html      # 前端页面
+├── skills/             # 技能模块
+│   ├── graduation-defense-pptx/
+│   └── excel_beautification/
+├── output/             # 生成的文件目录
+└── test.py             # 测试脚本
 ```
 
 ## 安装
@@ -63,39 +78,24 @@ uvicorn app:app --reload
 | `/api/files` | GET | 列出生成的文件 |
 | `/files/{filename}` | GET | 下载生成的文件 |
 
-## 示例
-
-### Python 调用
+## 流式响应示例
 
 ```python
 import requests
+import json
 
-# 流式对话
 response = requests.post(
     "http://localhost:8000/chat/stream",
-    json={"message": "把下面这段话总结为三点：..."},
+    json={"message": "把这段话总结为三点：..."},
     stream=True
 )
 for line in response.iter_lines():
     if line.startswith("data: "):
         data = json.loads(line[6:])
-        print(data.get("content", ""), end="")
-```
-
-### 请求示例
-
-```json
-// POST /chat/stream
-{
-  "message": "把这段话总结为三点：人工智能正在改变各行各业..."
-}
-
-// 响应 (SSE)
-data: {"node": "supervisor", "content": "您好"}
-data: {"node": "summarizer", "content": "已收到"}
-data: {"node": "supervisor", "content": "为您总结如下："}
-...
-data: [DONE]
+        if data.get("content"):
+            print(data["content"], end="")
+        if data.get("node"):
+            print(f"\n[当前智能体: {data['node']}]")
 ```
 
 ## 技术栈
