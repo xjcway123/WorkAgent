@@ -54,5 +54,3 @@ class SkillLoader:
             return f"Error: Unknown skill '{name}'. Available: {', '.join(self.skills.keys())}"
         return f"<skill name=\"{name}\">\n{skill['body']}\n</skill>"
 
-
-SKILL_LOADER = SkillLoader(SKILLS_DIR)
