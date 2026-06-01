@@ -17,17 +17,32 @@ from langchain_core.tools import tool
 from langchain.agents import create_agent              # ← v1.0 当前写法(取代 create_react_agent)
 from langgraph_supervisor import create_supervisor
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv
 import smtplib
 from email.mime.text import MIMEText
 import re
 from openpyxl import Workbook
 from openpyxl.styles import Font
+from skill_loader import SkillLoader
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 load_dotenv() 
 
-from skill_loader import SkillLoader
-SKILL_LOADER = SkillLoader(SKILLS_DIR)
+
+WORKDIR = Path.cwd()
+SKILLS_DIR = WORKDIR / "skills"
+
+loader = SkillLoader(SKILLS_DIR)
+print(loader.get_descriptions())
+      
+SYSTEM = f"""
+    You are a coding agent at {WORKDIR}.
+    Use load_skill to access specialized knowledge before tackling unfamiliar topics.
+
+    Skills available:
+    {SKILL_LOADER.get_descriptions()}
+"""
 
 # ----------------------------------------------------------------------
 # 1. 模型:指向火山方舟(OpenAI 兼容),model 填你的接入点 ID
