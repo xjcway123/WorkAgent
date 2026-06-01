@@ -11,12 +11,12 @@
 import json
 import os
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from multi_agent import supervisor   # 复用上一份文件里编译好的主管
+from multi_agent import supervisor, astream_supervisor, _hitl_broker   # 复用上一份文件里编译好的主管
 
 app = FastAPI(title="多智能体服务", description="总结 / 翻译 / 发邮件 / 做PPT / 做Excel")
 
@@ -33,40 +33,33 @@ class ChatRequest(BaseModel):
     message: str
 
 
-class ChatResponse(BaseModel):
-    reply: str
+class RespondRequest(BaseModel):
+    request_id: str
+    response: str
 
 
-# ---------- 普通接口(一次性返回完整结果)----------
-@app.post("/chat", response_model=ChatResponse)
+# ---------- Human-in-the-Loop 响应端点 ----------
+@app.post("/chat/respond")
+async def chat_respond(req: RespondRequest):
+    """前端收到 human_input_required 事件后,把用户选择 POST 回来以 resume agent 执行。"""
+    ok = _hitl_broker.resolve(req.request_id, req.response)
+    if not ok:
+        # 可能是 request_id 已过期 / 已被 resolve / 客户端重复点击
+        return {"ok": False, "reason": "no_pending_request"}
+    return {"ok": True}
+
+
+# ---------- 流式接口(逐事件推送,SSE)----------
+@app.post("/chat")
 async def chat(req: ChatRequest):
-    try:
-        result = await supervisor.ainvoke(
-            {"messages": [{"role": "user", "content": req.message}]}
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    return ChatResponse(reply=result["messages"][-1].content)
-
-
-# ---------- 流式接口(逐 token 推送,SSE)----------
-@app.post("/chat/stream")
-async def chat_stream(req: ChatRequest):
+    """统一 SSE 端点:yield agent / token / tool_call / tool_result /
+    human_input_required / done / error 事件。"""
     async def event_stream():
         try:
-            async for token, meta in supervisor.astream(
-                {"messages": [{"role": "user", "content": req.message}]},
-                stream_mode="messages",
-            ):
-                if getattr(token, "content", ""):
-                    data = {
-                        "node": meta.get("langgraph_node"),  # 当前哪个智能体在输出
-                        "content": token.content,
-                    }
-                    yield f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
+            async for evt in astream_supervisor(req.message):
+                yield f"data: {json.dumps(evt, ensure_ascii=False)}\n\n"
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'event': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

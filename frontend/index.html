@@ -1,361 +1,1379 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多智能体服务</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@13/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
     <style>
-        * {
+        /* ============================================================
+           Reset & base
+           ============================================================ */
+        *,
+        *::before,
+        *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --bg-0: #f1f5fb;
+            --bg-1: #f8fafc;
+            --bg-2: #ffffff;
+            --bg-3: #eef2f7;
+            --line: rgba(15, 23, 42, 0.08);
+            --line-soft: rgba(15, 23, 42, 0.05);
+            --text-0: #0f172a;
+            --text-1: #1e293b;
+            --text-2: #475569;
+            --text-3: #64748b;
+            --text-4: #94a3b8;
+
+            --brand: #6366f1;
+            --brand-2: #8b5cf6;
+            --brand-3: #3b82f6;
+            --brand-grad: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #3b82f6 100%);
+
+            --green: #10b981;
+            --red: #ef4444;
+            --yellow: #f59e0b;
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-pill: 999px;
+
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.04);
+            --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06), 0 12px 28px rgba(15, 23, 42, 0.05);
+            --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.10), 0 24px 48px rgba(15, 23, 42, 0.08);
+        }
+
+        html,
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: #0f172a;
-            color: #e2e8f0;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                "Hiragino Sans GB", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background:
+                radial-gradient(1100px 600px at 12% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
+                radial-gradient(900px 500px at 100% 0%, rgba(139, 92, 246, 0.16), transparent 55%),
+                radial-gradient(800px 500px at 80% 100%, rgba(59, 130, 246, 0.10), transparent 60%),
+                var(--bg-0);
+            color: var(--text-1);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            letter-spacing: 0.01em;
         }
 
+        /* Custom scrollbars (Webkit) */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(15, 23, 42, 0.12);
+            border-radius: 999px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(15, 23, 42, 0.22);
+            background-clip: padding-box;
+        }
+
+        /* ============================================================
+           Header
+           ============================================================ */
         header {
-            background: #1e293b;
-            padding: 16px 24px;
-            border-bottom: 1px solid #334155;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            padding: 18px 32px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.78) 100%);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--brand-grad);
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            color: white;
+            font-size: 16px;
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.30);
         }
 
         header h1 {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 600;
-            color: #f8fafc;
+            color: var(--text-0);
+            letter-spacing: 0.2px;
         }
 
-        .status {
+        .header-sub {
+            color: var(--text-3);
+            font-size: 12.5px;
+            padding-left: 4px;
+            border-left: 1px solid var(--line);
+            margin-left: 6px;
+        }
+
+        .status-wrap {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-2);
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-pill);
+        }
+
+        .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #22c55e;
+            background: var(--green);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
         }
 
-        .status.offline {
-            background: #ef4444;
+        .status-dot.offline {
+            background: var(--red);
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
         }
 
+        /* ============================================================
+           Main layout
+           ============================================================ */
         main {
             flex: 1;
-            display: flex;
-            max-width: 90%;
-            width: 90%;
-            margin: 0 auto;
-            padding: 24px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            /* Stretch both columns to the row's intrinsic height so
+               the chat container and the right sidebar line up exactly. */
+            align-items: stretch;
             gap: 24px;
+            width: 90%;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 28px;
         }
 
         .chat-container {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            background: #1e293b;
-            border-radius: 12px;
-            border: 1px solid #334155;
+            background: var(--bg-2);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
             overflow: hidden;
+            /* Fill the grid cell so the chat is exactly the same height
+               as the right sidebar (sum of history + gap + files).
+               The grid uses align-items: stretch to make both columns
+               share the row's intrinsic height.
+               - min-height: 500px  — keeps the chat usable on short viewports
+               - max-height: 858px  — matches the sidebar's natural max
+                 (history 360 + gap 18 + files 480); stops the chat from
+                 growing taller than the sidebar when messages are huge. */
+            height: 100%;
+            min-height: 500px;
+            max-height: 858px;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(180deg, rgba(238, 242, 247, 0.6), rgba(248, 250, 252, 0.3));
+        }
+
+        .chat-header .chat-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-0);
+        }
+
+        .chat-header .chat-meta {
+            font-size: 12px;
+            color: var(--text-3);
         }
 
         .chat-messages {
             flex: 1;
-            padding: 20px;
+            padding: 24px 22px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 18px;
+            scroll-behavior: smooth;
+            background:
+                radial-gradient(800px 400px at 50% 0%, rgba(99, 102, 241, 0.04), transparent 70%),
+                var(--bg-1);
         }
 
+        /* ============================================================
+           Messages
+           ============================================================ */
         .message {
-            padding: 12px 16px;
-            border-radius: 12px;
-            max-width: 85%;
-            line-height: 1.6;
-            white-space: pre-wrap;
+            position: relative;
+            padding: 13px 17px;
+            border-radius: var(--radius-md);
+            max-width: 78%;
+            line-height: 1.7;
             word-break: break-word;
             text-align: left;
+            animation: msgIn 0.28s ease-out;
+        }
+
+        @keyframes msgIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .message.user {
-            background: #3b82f6;
-            color: white;
             align-self: flex-end;
+            background: var(--brand-grad);
+            color: white;
             border-bottom-right-radius: 4px;
+            white-space: pre-wrap;
+            box-shadow: 0 8px 22px rgba(99, 102, 241, 0.22);
+            font-size: 14.5px;
         }
 
         .message.assistant {
-            background: #334155;
             align-self: flex-start;
+            background: var(--bg-2);
+            border: 1px solid var(--line);
             border-bottom-left-radius: 4px;
+            border-left: 4px solid var(--text-4);
+            transition: border-left-color 0.35s ease, box-shadow 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Per-agent left-border color */
+        .message.assistant.agent-supervisor {
+            border-left-color: #94a3b8;
+        }
+
+        .message.assistant.agent-summarizer {
+            border-left-color: #3b82f6;
+        }
+
+        .message.assistant.agent-translator {
+            border-left-color: #8b5cf6;
+        }
+
+        .message.assistant.agent-emailer {
+            border-left-color: #ec4899;
+        }
+
+        .message.assistant.agent-ppt_maker {
+            border-left-color: #f59e0b;
+        }
+
+        .message.assistant.agent-excel_maker {
+            border-left-color: #10b981;
+        }
+
+        .message.assistant.system-prompt {
+            background: linear-gradient(180deg, #eef2ff, #ffffff);
+            border-left-color: var(--brand);
+        }
+
+        .message.assistant.thinking::after {
+            content: '';
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.7;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(0.85);
+            }
+
+            50% {
+                opacity: 0.95;
+                transform: scale(1.15);
+            }
+        }
+
+        /* Markdown content inside assistant messages */
+        .message.assistant .content {
+            color: var(--text-1);
+            font-size: 14.5px;
+        }
+
+        /* Generating indicator: spinner + "正在生成" placeholder shown
+           while the assistant bubble is empty / waiting for the first token. */
+        .generating-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            color: var(--text-3);
+            font-size: 13px;
+            padding: 4px 2px;
+            user-select: none;
+        }
+
+        .generating-indicator .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--line);
+            border-top-color: var(--brand);
+            border-radius: 50%;
+            animation: genSpin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .generating-indicator .gen-text {
+            letter-spacing: 0.2px;
+        }
+
+        @keyframes genSpin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .message.assistant .content>*:first-child {
+            margin-top: 0;
+        }
+
+        .message.assistant .content>*:last-child {
+            margin-bottom: 0;
+        }
+
+        .message.assistant .content p {
+            margin: 8px 0;
+        }
+
+        .message.assistant .content h1,
+        .message.assistant .content h2,
+        .message.assistant .content h3,
+        .message.assistant .content h4 {
+            margin: 14px 0 8px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            color: var(--text-0);
+        }
+
+        .message.assistant .content h1 {
+            font-size: 1.35em;
+        }
+
+        .message.assistant .content h2 {
+            font-size: 1.18em;
+        }
+
+        .message.assistant .content h3 {
+            font-size: 1.05em;
+        }
+
+        .message.assistant .content h4 {
+            font-size: 0.95em;
+        }
+
+        .message.assistant .content ul,
+        .message.assistant .content ol {
+            margin: 8px 0 8px 22px;
+        }
+
+        .message.assistant .content ul {
+            list-style: disc;
+        }
+
+        .message.assistant .content ol {
+            list-style: decimal;
+        }
+
+        .message.assistant .content li {
+            margin: 4px 0;
+        }
+
+        .message.assistant .content li::marker {
+            color: var(--text-3);
+        }
+
+        .message.assistant .content a {
+            color: var(--brand-3);
+            text-decoration: underline;
+            text-decoration-color: rgba(59, 130, 246, 0.4);
+            text-underline-offset: 3px;
+        }
+
+        .message.assistant .content a:hover {
+            color: #1d4ed8;
+        }
+
+        .message.assistant .content strong {
+            color: var(--text-0);
+            font-weight: 600;
+        }
+
+        .message.assistant .content em {
+            color: var(--text-1);
+        }
+
+        .message.assistant .content code {
+            font-family: "SF Mono", "JetBrains Mono", Consolas, Menlo, monospace;
+            background: #eef2f7;
+            border: 1px solid var(--line-soft);
+            padding: 1px 7px;
+            border-radius: 5px;
+            font-size: 0.88em;
+            color: #4338ca;
+        }
+
+        .message.assistant .content pre {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            padding: 14px 16px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .message.assistant .content pre code {
+            background: transparent;
+            border: none;
+            padding: 0;
+            font-size: 0.85em;
+            color: #e2e8f0;
+        }
+
+        .message.assistant .content blockquote {
+            border-left: 3px solid var(--brand);
+            padding: 4px 0 4px 14px;
+            color: var(--text-2);
+            margin: 8px 0;
+            font-style: italic;
+            background: rgba(99, 102, 241, 0.04);
+        }
+
+        .message.assistant .content hr {
+            border: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--line), transparent);
+            margin: 14px 0;
+        }
+
+        .message.assistant .content table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 0.92em;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .message.assistant .content th,
+        .message.assistant .content td {
+            border: 1px solid var(--line);
+            padding: 6px 12px;
+        }
+
+        .message.assistant .content th {
+            background: #eef2ff;
+            color: var(--text-0);
+            font-weight: 600;
+        }
+
+        .message.assistant .content tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        /* ============================================================
+           Agent badge
+           ============================================================ */
+        .agent-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11.5px;
+            padding: 4px 11px 4px 9px;
+            border-radius: var(--radius-pill);
+            background: #f1f5f9;
+            border: 1px solid var(--line);
+            color: var(--text-2);
+            margin-bottom: 8px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            text-transform: lowercase;
+        }
+
+        .agent-badge .agent-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .agent-badge.summarizer {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #2563eb;
+        }
+
+        .agent-badge.translator {
+            background: #f5f3ff;
+            border-color: #ddd6fe;
+            color: #7c3aed;
+        }
+
+        .agent-badge.emailer {
+            background: #fdf2f8;
+            border-color: #fbcfe8;
+            color: #db2777;
+        }
+
+        .agent-badge.ppt_maker {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #d97706;
+        }
+
+        .agent-badge.excel_maker {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #059669;
+        }
+
+        .agent-badge.supervisor {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+
+        .agent-badge.system {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4f46e5;
+        }
+
+        /* ============================================================
+           Tool badge
+           ============================================================ */
+        .tool-badge {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 5px 10px;
+            margin: 4px 6px 4px 0;
+            border-radius: 8px;
+            font-size: 11.5px;
+            font-family: "SF Mono", "JetBrains Mono", Consolas, Menlo, monospace;
+            background: #eef2ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+            vertical-align: middle;
+            transition: background 0.25s, border-color 0.25s, color 0.25s;
+        }
+
+        .tool-badge .tool-icon {
+            display: inline-grid;
+            place-items: center;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: currentColor;
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+        }
+
+        .tool-badge .tool-name {
+            font-weight: 600;
+        }
+
+        .tool-badge .tool-args {
+            color: var(--text-3);
+            font-size: 10.5px;
+            opacity: 0.95;
+            max-width: 280px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tool-badge.done {
+            background: #ecfdf5;
+            color: #047857;
+            border-color: #a7f3d0;
+        }
+
+        .tool-badge.done .tool-icon {
+            background: var(--green);
+            color: white;
+        }
+
+        .tool-badge .tool-preview {
+            display: block;
+            flex-basis: 100%;
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-2);
+            background: rgba(15, 23, 42, 0.04);
+            padding: 5px 8px;
+            border-radius: 6px;
+            max-width: 520px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: pre-wrap;
+            font-family: "SF Mono", Consolas, Menlo, monospace;
+        }
+
+        /* Collapsible group around consecutive tool badges.
+           Default collapsed when there are 3+ badges; otherwise expanded. */
+        .tool-calls-group {
+            margin: 4px 0 6px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: rgba(238, 242, 247, 0.55);
+            overflow: hidden;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .tool-calls-group:hover {
+            border-color: rgba(99, 102, 241, 0.25);
+        }
+
+        .tool-calls-group .tcg-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 11.5px;
+            color: var(--text-2);
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            width: 100%;
             text-align: left;
         }
 
-        .message.assistant .agent-tag {
+        .tool-calls-group .tcg-header:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .tool-calls-group .tcg-arrow {
             display: inline-block;
-            font-size: 11px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: rgba(255,255,255,0.1);
-            margin-bottom: 6px;
-            color: #94a3b8;
+            width: 10px;
+            height: 10px;
+            border-right: 1.5px solid var(--text-3);
+            border-bottom: 1.5px solid var(--text-3);
+            transform: rotate(-45deg);
+            transition: transform 0.2s;
+            margin-right: 2px;
         }
 
-        .message .agent-tag.summarizer { color: #60a5fa; }
-        .message .agent-tag.translator { color: #a78bfa; }
-        .message .agent-tag.emailer { color: #f472b6; }
-        .message .agent-tag.ppt_maker { color: #fbbf24; }
-        .message .agent-tag.excel_maker { color: #34d399; }
+        .tool-calls-group.open .tcg-arrow {
+            transform: rotate(45deg);
+        }
 
-        .typing-indicator {
+        .tool-calls-group .tcg-count {
+            background: var(--brand);
+            color: white;
+            font-size: 10.5px;
+            font-weight: 600;
+            padding: 1px 7px;
+            border-radius: 999px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .tool-calls-group .tcg-label {
+            flex: 1;
+        }
+
+        .tool-calls-group .tcg-body {
+            display: none;
+            padding: 4px 10px 8px;
+            flex-wrap: wrap;
+            gap: 0;
+        }
+
+        .tool-calls-group.open .tcg-body {
             display: flex;
-            gap: 4px;
-            padding: 8px;
         }
 
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            background: #64748b;
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
+        /* Inside the group, tool badges stack vertically and span full width
+           so they're easier to read. */
+        .tool-calls-group .tool-badge {
+            margin: 3px 0;
+            max-width: 100%;
         }
 
-        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-4px); }
+        .tool-calls-group .tool-badge .tool-args {
+            max-width: 420px;
         }
 
+        .tool-calls-group .tool-badge .tool-preview {
+            max-width: 100%;
+        }
+
+        /* ============================================================
+           Input bar
+           ============================================================ */
         .chat-input {
-            padding: 16px;
-            background: #0f172a;
-            border-top: 1px solid #334155;
+            padding: 16px 20px 18px;
+            background: linear-gradient(180deg, rgba(241, 245, 251, 0) 0%, rgba(241, 245, 251, 0.6) 100%);
+            border-top: 1px solid var(--line);
             display: flex;
             gap: 12px;
         }
 
         .chat-input input {
             flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            background: #1e293b;
-            color: #f8fafc;
+            padding: 13px 18px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            background: var(--bg-2);
+            color: var(--text-0);
             font-size: 14px;
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .chat-input input::placeholder {
+            color: var(--text-4);
         }
 
         .chat-input input:focus {
-            border-color: #3b82f6;
+            border-color: rgba(99, 102, 241, 0.55);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
         }
 
         .chat-input button {
-            padding: 12px 24px;
-            background: #3b82f6;
+            padding: 0 26px;
+            background: var(--brand-grad);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: transform 0.15s ease, box-shadow 0.2s, opacity 0.2s;
+            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.30);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .chat-input button:hover:not(:disabled) {
-            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(99, 102, 241, 0.40);
+        }
+
+        .chat-input button:active:not(:disabled) {
+            transform: translateY(0);
         }
 
         .chat-input button:disabled {
-            background: #475569;
+            opacity: 0.55;
             cursor: not-allowed;
+            box-shadow: none;
         }
 
+        /* ============================================================
+           Sidebar
+           ============================================================ */
         .sidebar {
-            width: 240px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 18px;
+            min-width: 0;
         }
 
-        .agents-panel {
-            background: #1e293b;
-            border-radius: 12px;
-            border: 1px solid #334155;
-            padding: 16px;
+        .panel {
+            background: var(--bg-2);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            padding: 16px 16px 18px;
+            box-shadow: var(--shadow-sm);
+            /* Don't shrink panels in the sidebar flex — they each have
+               their own declared height (history max, files min/max)
+               that we want to keep stable. */
+            flex-shrink: 0;
         }
 
-        .agents-panel h3 {
-            font-size: 12px;
-            text-transform: uppercase;
-            color: #64748b;
-            margin-bottom: 12px;
-            letter-spacing: 0.5px;
-        }
-
-        .agent-item {
+        .panel-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 0;
-            font-size: 13px;
-            color: #94a3b8;
+            justify-content: space-between;
+            margin-bottom: 14px;
         }
 
-        .agent-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-        }
-
-        .files-panel {
-            background: #1e293b;
-            border-radius: 12px;
-            border: 1px solid #334155;
-            padding: 16px;
-            flex: 1;
-        }
-
-        .files-panel h3 {
-            font-size: 12px;
+        .panel-header h3 {
+            font-size: 11px;
             text-transform: uppercase;
-            color: #64748b;
-            margin-bottom: 12px;
-            letter-spacing: 0.5px;
+            color: var(--text-3);
+            letter-spacing: 1.2px;
+            font-weight: 700;
+        }
+
+        .panel-header button {
+            background: var(--brand-grad);
+            color: white;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: grid;
+            place-items: center;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.30);
+        }
+
+        .panel-header button:hover {
+            transform: rotate(90deg) scale(1.05);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.40);
+        }
+
+        /* ============================================================
+           History panel
+           ============================================================ */
+        .history-panel {
+            max-height: 360px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .history-list {
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 0 -4px;
+            padding: 0 4px;
+        }
+
+        .history-item {
+            position: relative;
+            padding: 10px 32px 10px 12px;
+            background: #f8fafc;
+            border: 1px solid var(--line-soft);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.18s, border-color 0.18s, transform 0.15s;
+        }
+
+        .history-item:hover {
+            background: #f1f5f9;
+            transform: translateX(2px);
+        }
+
+        .history-item.active {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.02));
+            border-color: rgba(99, 102, 241, 0.45);
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.15);
+        }
+
+        .history-title {
+            font-size: 13px;
+            color: var(--text-0);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-time {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 2px;
+        }
+
+        .history-delete {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 22px;
+            height: 22px;
+            border: none;
+            background: transparent;
+            color: var(--text-3);
+            font-size: 16px;
+            line-height: 1;
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 0;
+            display: grid;
+            place-items: center;
+            opacity: 0;
+            transition: opacity 0.15s, background 0.15s, color 0.15s;
+        }
+
+        .history-item:hover .history-delete {
+            opacity: 1;
+        }
+
+        .history-delete:hover {
+            background: var(--red);
+            color: white;
+        }
+
+        .empty-history {
+            color: var(--text-4);
+            font-size: 12px;
+            text-align: center;
+            padding: 16px 0;
+            font-style: italic;
+        }
+
+        /* ============================================================
+           Files panel
+           ============================================================ */
+        .files-panel {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            /* Stable fixed-height block. Same approach as .chat-container:
+               - min-height floor keeps the panel visible even when the
+                 file list is empty (no surprise "block disappears" UX)
+               - viewport-based height keeps it proportional to the screen
+               - max cap stops it from eating the sidebar on huge displays
+               Internal #filesList scrolls when content overflows. */
+            min-height: 360px;
+            height: min(calc(100vh - 360px), 480px);
+        }
+
+        #filesList {
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .file-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px;
-            background: #0f172a;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            font-size: 12px;
+            gap: 10px;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border: 1px solid var(--line-soft);
+            border-radius: 10px;
+            font-size: 12.5px;
+            transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+        }
+
+        .file-item:hover {
+            background: #ffffff;
+            border-color: var(--line);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .file-item.flash {
+            animation: fileFlash 3s ease-out;
+        }
+
+        @keyframes fileFlash {
+            0% {
+                background: #fef3c7;
+                border-color: #fcd34d;
+                transform: scale(1.02);
+                box-shadow: 0 4px 14px rgba(245, 158, 11, 0.30);
+            }
+
+            50% {
+                background: #fef9c3;
+                border-color: #fde68a;
+                transform: scale(1);
+            }
+
+            100% {
+                background: #f8fafc;
+                border-color: var(--line-soft);
+                transform: scale(1);
+                box-shadow: none;
+            }
         }
 
         .file-item .icon {
-            color: #60a5fa;
+            display: inline-grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: #dbeafe;
+            color: #2563eb;
+            font-size: 15px;
+            flex-shrink: 0;
         }
 
-        .file-item a {
-            color: #60a5fa;
+        .file-item.ppt .icon {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .file-item a.file-name {
+            color: var(--text-0);
             text-decoration: none;
             flex: 1;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            font-weight: 500;
         }
 
-        .file-item a:hover {
-            text-decoration: underline;
-        }
-
-        .empty-files {
-            color: #475569;
-            font-size: 12px;
-            text-align: center;
-            padding: 20px 0;
+        .file-item a.file-name:hover {
+            color: var(--brand-3);
         }
 
         .download-link {
-            color: #22c55e;
+            color: #047857;
             font-size: 11px;
             text-decoration: none;
-            padding: 2px 6px;
-            border: 1px solid #22c55e;
-            border-radius: 4px;
+            padding: 4px 10px;
+            border: 1px solid #a7f3d0;
+            background: #ecfdf5;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            flex-shrink: 0;
         }
 
         .download-link:hover {
-            background: #22c55e;
+            background: var(--green);
             color: white;
+            border-color: var(--green);
         }
 
-        @media (max-width: 768px) {
+        .empty-files {
+            color: var(--text-4);
+            font-size: 12px;
+            text-align: center;
+            padding: 28px 12px;
+            font-style: italic;
+            border: 1px dashed var(--line);
+            border-radius: 10px;
+            background: rgba(99, 102, 241, 0.02);
+        }
+
+        /* ============================================================
+           Responsive
+           ============================================================ */
+        @media (max-width: 980px) {
             main {
-                flex-direction: column;
+                grid-template-columns: 1fr;
                 padding: 16px;
+                gap: 16px;
             }
 
             .sidebar {
-                width: 100%;
                 flex-direction: row;
+                flex-wrap: wrap;
             }
 
-            .agents-panel, .files-panel {
-                flex: 1;
+            .sidebar .panel {
+                flex: 1 1 240px;
+            }
+
+            .history-panel {
+                max-height: 240px;
+            }
+
+            /* On small screens the fixed viewport-based heights
+               make the chat and files panels feel cramped — let
+               the layout flow naturally. */
+            .chat-container {
+                height: auto;
+                min-height: 60vh;
+            }
+            .files-panel {
+                min-height: 280px;
+                height: 360px;
             }
         }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 14px 18px;
+            }
+
+            .header-sub {
+                display: none;
+            }
+
+            .message {
+                max-width: 92%;
+            }
+        }
+
+        /* ============================================================
+           HITL (Human-in-the-Loop) modal
+           ============================================================ */
+        .hitl-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            animation: hitlFade 0.18s ease-out;
+        }
+        .hitl-overlay.active { display: flex; }
+        @keyframes hitlFade { from { opacity: 0; } to { opacity: 1; } }
+
+        .hitl-modal {
+            width: min(560px, 92vw);
+            background: var(--bg-2);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--line);
+            overflow: hidden;
+            animation: hitlSlide 0.22s ease-out;
+        }
+        @keyframes hitlSlide {
+            from { transform: translateY(12px) scale(0.97); opacity: 0; }
+            to   { transform: translateY(0)    scale(1);    opacity: 1; }
+        }
+
+        .hitl-modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 22px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.10), rgba(139,92,246,0.06));
+            border-bottom: 1px solid var(--line);
+        }
+        .hitl-modal-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--brand-grad);
+            display: grid;
+            place-items: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 6px 16px rgba(99,102,241,0.30);
+        }
+        .hitl-modal-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-0);
+        }
+        .hitl-modal-subtitle {
+            font-size: 12px;
+            color: var(--text-3);
+            margin-top: 2px;
+        }
+
+        .hitl-modal-body {
+            padding: 20px 22px;
+        }
+        .hitl-question {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-1);
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #f8fafc;
+            border: 1px solid var(--line-soft);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .hitl-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .hitl-option {
+            appearance: none;
+            text-align: left;
+            padding: 11px 16px;
+            border: 1px solid var(--line);
+            background: #f8fafc;
+            border-radius: 10px;
+            font-size: 13.5px;
+            color: var(--text-1);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, transform 0.1s;
+            font-family: inherit;
+        }
+        .hitl-option:hover {
+            background: #eef2ff;
+            border-color: rgba(99,102,241,0.45);
+        }
+        .hitl-option:active { transform: scale(0.98); }
+        .hitl-option.primary {
+            background: var(--brand-grad);
+            color: white;
+            border-color: transparent;
+            font-weight: 600;
+            box-shadow: 0 6px 16px rgba(99,102,241,0.30);
+        }
+        .hitl-option.primary:hover {
+            filter: brightness(1.05);
+        }
+
+        .hitl-freeform {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .hitl-freeform input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: #f8fafc;
+            color: var(--text-0);
+            font-size: 13.5px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .hitl-freeform input:focus {
+            border-color: rgba(99,102,241,0.55);
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+        }
+        .hitl-freeform button {
+            padding: 0 18px;
+            border: none;
+            background: var(--brand-grad);
+            color: white;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13.5px;
+            cursor: pointer;
+            transition: filter 0.15s;
+        }
+        .hitl-freeform button:hover { filter: brightness(1.05); }
+
+        .hitl-pending {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-2);
+            font-size: 13px;
+        }
+        .hitl-modal { position: relative; }
+        .hitl-pending.active { display: flex; }
+        .hitl-pending .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(99, 102, 241, 0.25);
+            border-top-color: var(--brand);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
+
 <body>
     <header>
-        <div class="status" id="status"></div>
-        <h1>多智能体服务</h1>
-        <span style="color: #64748b; font-size: 13px;">总结 / 翻译 / 发邮件 / 做PPT / 做Excel</span>
+        <div class="logo">多</div>
+        <h1>多智能体助手</h1>
+        <div class="status-wrap">
+            <div class="status-dot" id="status"></div>
+            <span id="statusText">在线</span>
+        </div>
     </header>
 
     <main>
         <div class="chat-container">
             <div class="chat-messages" id="messages">
-                <div class="message assistant">
-<div class="agent-tag">系统</div>您好！我是多智能体助手，可以帮您：
+                <div class="message assistant system-prompt" data-system="true">
+                    <div class="agent-badge system"><span class="agent-dot"></span><span class="agent-name">系统</span>
+                    </div>
+                    <div class="content">您好！我是多智能体助手，可以帮您：
 
-• 总结内容
-• 翻译文本
-• 发送邮件
-• 制作 PPT
-• 制作 Excel
-
-请告诉我您需要什么帮助？
+                        <br>-总结内容
+                        <br>-翻译文本
+                        <br>-发送邮件
+                        <br>-制作PPT
+                        <br>-制作Excel
+                        <br>
+                        请告诉我您需要什么帮助？
+                    </div>
                 </div>
             </div>
             <div class="chat-input">
-                <input type="text" id="messageInput" placeholder="输入您的需求..." onkeypress="handleKeyPress(event)">
-                <button id="sendBtn" onclick="sendMessage()">发送</button>
+                <input type="text" id="messageInput" placeholder="输入您的需求，回车发送…" onkeypress="handleKeyPress(event)">
+                <button id="sendBtn" onclick="sendMessage()">
+                    <span>发送</span>
+                    <span style="font-size: 14px;">→</span>
+                </button>
             </div>
         </div>
 
         <div class="sidebar">
-            <div class="agents-panel">
-                <h3>专家智能体</h3>
-                <div class="agent-item">
-                    <div class="agent-dot" style="background: #60a5fa;"></div>
-                    <span> summarizer</span>
+            <div class="panel history-panel">
+                <div class="panel-header">
+                    <h3>历史记录</h3>
+                    <button id="newConvBtn" title="新建对话">+</button>
                 </div>
-                <div class="agent-item">
-                    <div class="agent-dot" style="background: #a78bfa;"></div>
-                    <span> translator</span>
-                </div>
-                <div class="agent-item">
-                    <div class="agent-dot" style="background: #f472b6;"></div>
-                    <span> emailer</span>
-                </div>
-                <div class="agent-item">
-                    <div class="agent-dot" style="background: #fbbf24;"></div>
-                    <span> ppt_maker</span>
-                </div>
-                <div class="agent-item">
-                    <div class="agent-dot" style="background: #34d399;"></div>
-                    <span> excel_maker</span>
-                </div>
+                <div id="historyList" class="history-list"></div>
             </div>
 
-            <div class="files-panel">
-                <h3>生成的文件</h3>
+            <div class="panel files-panel">
+                <div class="panel-header">
+                    <h3>生成的文件</h3>
+                </div>
                 <div id="filesList">
                     <div class="empty-files">暂无生成的文件</div>
                 </div>
@@ -363,172 +1381,683 @@
         </div>
     </main>
 
-    <script>
-        let currentAgent = null;
-        let isStreaming = false;
+    <!-- ============================================================
+         HITL modal (Human-in-the-Loop)
+         ============================================================ -->
+    <div class="hitl-overlay" id="hitlOverlay" role="dialog" aria-modal="true" aria-labelledby="hitlTitle">
+        <div class="hitl-modal">
+            <div class="hitl-modal-header">
+                <div class="hitl-modal-icon">⚡</div>
+                <div>
+                    <div class="hitl-modal-title" id="hitlTitle">需要您确认</div>
+                    <div class="hitl-modal-subtitle">Agent 正在等待您的回复</div>
+                </div>
+            </div>
+            <div class="hitl-modal-body">
+                <div class="hitl-question" id="hitlQuestion"></div>
+                <div class="hitl-options" id="hitlOptions"></div>
+                <div class="hitl-freeform" id="hitlFreeform" hidden>
+                    <input type="text" id="hitlFreeformInput" placeholder="输入您的回复…">
+                    <button id="hitlFreeformSubmit">发送</button>
+                </div>
+            </div>
+            <div class="hitl-pending" id="hitlPending">
+                <div class="spinner"></div>
+                <span>正在提交…</span>
+            </div>
+        </div>
+    </div>
 
+    <script>
+        // ----------------------------------------------------------------
+        // State
+        // ----------------------------------------------------------------
+        const HISTORY_KEY = 'workagent.history';
+        const HISTORY_LIMIT = 50;
+        const AGENT_COLORS = {
+            summarizer: '#60a5fa',
+            translator: '#a78bfa',
+            emailer: '#f472b6',
+            ppt_maker: '#fbbf24',
+            excel_maker: '#34d399',
+            supervisor: '#cbd5e1',
+        };
+
+        const state = {
+            conversations: [],
+            currentId: null,
+            isStreaming: false,
+            seenFiles: new Set(),
+        };
+
+        // ----------------------------------------------------------------
+        // Markdown rendering
+        // ----------------------------------------------------------------
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({ breaks: true, gfm: true });
+        }
+
+        function renderMarkdown(text) {
+            if (text == null) return '';
+            if (typeof marked === 'undefined') {
+                // Fallback: escape HTML and preserve line breaks
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML.replace(/\n/g, '<br>');
+            }
+            const html = marked.parse(String(text));
+            if (typeof DOMPurify !== 'undefined') {
+                return DOMPurify.sanitize(html);
+            }
+            return html;
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // ----------------------------------------------------------------
+        // History persistence
+        // ----------------------------------------------------------------
+        function loadHistory() {
+            try {
+                const raw = localStorage.getItem(HISTORY_KEY);
+                if (!raw) return [];
+                const arr = JSON.parse(raw);
+                return Array.isArray(arr) ? arr : [];
+            } catch (e) {
+                console.warn('loadHistory failed', e);
+                return [];
+            }
+        }
+
+        function saveHistory() {
+            try {
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(state.conversations));
+            } catch (e) {
+                console.warn('saveHistory failed', e);
+            }
+        }
+
+        function trimHistory() {
+            // LRU drop: keep the latest HISTORY_LIMIT conversations
+            if (state.conversations.length > HISTORY_LIMIT) {
+                state.conversations = state.conversations.slice(-HISTORY_LIMIT);
+            }
+        }
+
+        function newConversation() {
+            // Persist any pending changes to the current conversation first
+            if (state.currentId) saveCurrentConversation();
+            const conv = {
+                id: (typeof crypto !== 'undefined' && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : 'conv-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+                title: '新对话',
+                createdAt: new Date().toISOString(),
+                messages: [],
+            };
+            state.conversations.push(conv);
+            state.currentId = conv.id;
+            trimHistory();
+            saveHistory();
+            clearMessages();
+            renderHistory();
+        }
+
+        function saveCurrentConversation() {
+            const conv = state.conversations.find(c => c.id === state.currentId);
+            if (!conv) return;
+            // Skip the static system prompt; only persist real user/assistant turns.
+            conv.messages = [...messagesEl.querySelectorAll('.message')]
+                .filter(el => el.dataset.system !== 'true')
+                .map(el => {
+                    const isUser = el.classList.contains('user');
+                    const contentEl = el.querySelector('.content');
+                    const agentEl = el.querySelector('.agent-badge');
+                    // Serialize any tool badges under this message so the
+                    // "工具调用" panel survives a refresh.
+                    const toolCalls = [];
+                    el.querySelectorAll('.tool-calls-group .tool-badge').forEach(b => {
+                        let args = {};
+                        try { args = JSON.parse(b.dataset.args || '{}'); } catch {}
+                        const previewEl = b.querySelector('.tool-preview');
+                        toolCalls.push({
+                            tool: b.dataset.tool || '',
+                            node: b.dataset.node || '',
+                            args,
+                            done: b.classList.contains('done'),
+                            preview: previewEl
+                                ? previewEl.textContent.replace(/^→\s*/, '')
+                                : '',
+                        });
+                    });
+                    return {
+                        role: isUser ? 'user' : 'assistant',
+                        content: contentEl ? contentEl.textContent : '',
+                        agent: agentEl ? (agentEl.dataset.agent || null) : null,
+                        toolCalls,
+                    };
+                });
+            const firstUser = conv.messages.find(m => m.role === 'user');
+            if (firstUser && firstUser.content) {
+                conv.title = firstUser.content.slice(0, 24) || '新对话';
+            }
+            conv.updatedAt = new Date().toISOString();
+            // Persist to localStorage so a refresh / new tab keeps the history.
+            // Without this, the in-memory mutation is lost on reload and the
+            // history panel appears empty.
+            saveHistory();
+        }
+
+        function loadConversation(id) {
+            if (state.isStreaming) return;
+            if (state.currentId === id) return;
+            saveCurrentConversation();
+            const conv = state.conversations.find(c => c.id === id);
+            if (!conv) return;
+            state.currentId = id;
+            clearMessages();
+            for (const m of conv.messages) {
+                addMessage(m.role, m.content, m.agent, m.toolCalls || []);
+            }
+            renderHistory();
+        }
+
+        function deleteConversation(id) {
+            state.conversations = state.conversations.filter(c => c.id !== id);
+            if (state.currentId === id) {
+                if (state.conversations.length === 0) {
+                    newConversation();
+                    return;
+                }
+                const last = state.conversations[state.conversations.length - 1];
+                loadConversation(last.id);
+                return;
+            }
+            saveHistory();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (!list) return;
+            list.innerHTML = '';
+            if (state.conversations.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-history';
+                empty.textContent = '暂无历史对话';
+                list.appendChild(empty);
+                return;
+            }
+            // newest first
+            const items = state.conversations.slice().reverse();
+            for (const c of items) {
+                const item = document.createElement('div');
+                item.className = 'history-item' + (c.id === state.currentId ? ' active' : '');
+                item.dataset.id = c.id;
+                item.innerHTML = `
+                    <div class="history-title">${escapeHtml(c.title || '新对话')}</div>
+                    <div class="history-time">${escapeHtml(new Date(c.createdAt).toLocaleString('zh-CN'))}</div>
+                    <button class="history-delete" title="删除">×</button>
+                `;
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('history-delete')) return;
+                    loadConversation(c.id);
+                });
+                item.querySelector('.history-delete').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm('删除此对话？')) deleteConversation(c.id);
+                });
+                list.appendChild(item);
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // DOM helpers
+        // ----------------------------------------------------------------
         const messagesEl = document.getElementById('messages');
         const inputEl = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const statusEl = document.getElementById('status');
+        const statusTextEl = document.getElementById('statusText');
 
-        async function checkHealth() {
-            try {
-                const res = await fetch(`/health`);
-                if (res.ok) {
-                    statusEl.classList.remove('offline');
-                } else {
-                    statusEl.classList.add('offline');
-                }
-            } catch {
-                statusEl.classList.add('offline');
-            }
+        function autoScroll() {
+            messagesEl.scrollTop = messagesEl.scrollHeight;
         }
 
-        function addMessage(role, content, agent = null) {
+        function clearMessages() {
+            // Preserve the static system welcome message at the top.
+            const sysPrompt = messagesEl.querySelector('[data-system="true"]');
+            messagesEl.innerHTML = '';
+            if (sysPrompt) messagesEl.appendChild(sysPrompt);
+        }
+
+        function addMessage(role, content, agent, toolCalls) {
             const div = document.createElement('div');
             div.className = `message ${role}`;
-
-            if (agent) {
+            if (agent && role === 'assistant') {
+                // Color the message border by agent so the current agent
+                // is unmistakable at a glance.
+                const knownAgents = new Set([
+                    'summarizer', 'translator', 'emailer',
+                    'ppt_maker', 'excel_maker', 'supervisor',
+                ]);
+                if (knownAgents.has(agent)) {
+                    div.classList.add('agent-' + agent);
+                }
                 const tag = document.createElement('div');
-                tag.className = `agent-tag ${agent}`;
-                tag.textContent = agent;
+                tag.className = `agent-badge ${agent}`;
+                tag.dataset.agent = agent;
+                tag.innerHTML = `<span class="agent-dot"></span><span class="agent-name">${escapeHtml(agent)}</span>`;
                 div.appendChild(tag);
             }
-
+            // Replay saved tool calls (used when restoring from history).
+            // The badges go through ensureToolGroup so the collapse/expand
+            // UI behaves the same as a live stream.
+            if (role === 'assistant' && Array.isArray(toolCalls) && toolCalls.length) {
+                for (const tc of toolCalls) {
+                    insertToolBadge(div, {
+                        tool: tc.tool,
+                        node: tc.node,
+                        args: tc.args || {},
+                    });
+                    if (tc.done) {
+                        updateToolBadge(div, {
+                            tool: tc.tool,
+                            preview: tc.preview || '',
+                        });
+                    }
+                }
+                // Always restore with the group open so the user can see
+                // which tools were called. The user can manually collapse
+                // the header after the fact.
+                const group = div.querySelector('.tool-calls-group');
+                if (group) {
+                    group.classList.add('open');
+                    group.querySelector('.tcg-header')
+                        .setAttribute('aria-expanded', 'true');
+                }
+            }
             const text = document.createElement('div');
-            text.textContent = content;
+            text.className = 'content';
+            if (role === 'assistant') {
+                if (!content) {
+                    // Show a spinner + "正在生成" placeholder so the user
+                    // sees a clear signal that work is in progress.
+                    const indicator = document.createElement('div');
+                    indicator.className = 'generating-indicator';
+                    indicator.innerHTML = '<span class="spinner"></span><span class="gen-text">正在生成…</span>';
+                    text.appendChild(indicator);
+                } else {
+                    text.innerHTML = renderMarkdown(content);
+                }
+            } else {
+                text.textContent = content || '';
+            }
             div.appendChild(text);
-
             messagesEl.appendChild(div);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            autoScroll();
             return div;
         }
 
-        function showTyping(agent) {
-            hideTyping();
-            const div = document.createElement('div');
-            div.className = 'message assistant';
-            div.id = 'typing';
-            if (agent) {
-                const tag = document.createElement('div');
-                tag.className = `agent-tag ${agent}`;
-                tag.textContent = agent;
-                div.appendChild(tag);
+        function setAgentBadge(msgDiv, node) {
+            // Update the colored left border on the message itself so the
+            // current agent is unmistakable at a glance.
+            msgDiv.classList.remove(
+                'agent-supervisor', 'agent-summarizer', 'agent-translator',
+                'agent-emailer', 'agent-ppt_maker', 'agent-excel_maker'
+            );
+            msgDiv.classList.add('agent-' + node);
+            msgDiv.classList.add('thinking');
+
+            let tag = msgDiv.querySelector('.agent-badge');
+            if (!tag) {
+                tag = document.createElement('div');
+                tag.className = `agent-badge ${node}`;
+                tag.dataset.agent = node;
+                tag.innerHTML = `<span class="agent-dot"></span><span class="agent-name">${escapeHtml(node)}</span>`;
+                msgDiv.insertBefore(tag, msgDiv.firstChild);
+            } else {
+                tag.className = `agent-badge ${node}`;
+                tag.dataset.agent = node;
+                tag.innerHTML = `<span class="agent-dot"></span><span class="agent-name">${escapeHtml(node)}</span>`;
             }
-            const indicator = document.createElement('div');
-            indicator.className = 'typing-indicator';
-            indicator.innerHTML = '<span></span><span></span><span></span>';
-            div.appendChild(indicator);
-            messagesEl.appendChild(div);
-            messagesEl.scrollTop = messagesEl.scrollHeight;
         }
 
-        function hideTyping() {
-            const typing = document.getElementById('typing');
-            if (typing) typing.remove();
+        function insertToolBadge(msgDiv, evt) {
+            // Append a new in-progress tool badge to a collapsible group
+            // so consecutive tool calls don't visually dominate the message.
+            const group = ensureToolGroup(msgDiv);
+            const badge = document.createElement('span');
+            badge.className = 'tool-badge';
+            badge.dataset.tool = evt.tool;
+            badge.dataset.node = evt.node;
+            // Stash args in a data attribute so the persistence layer
+            // can read structured data without parsing the inner HTML.
+            try {
+                badge.dataset.args = JSON.stringify(evt.args || {});
+            } catch {
+                badge.dataset.args = '{}';
+            }
+            const argsText = Object.keys(evt.args || {}).length
+                ? ' ' + JSON.stringify(evt.args)
+                : '';
+            badge.innerHTML = `<span class="tool-icon">⚙</span><span>${escapeHtml(evt.tool)}</span><span class="tool-args">${escapeHtml(argsText)}</span>`;
+            group.querySelector('.tcg-body').appendChild(badge);
+            updateToolGroupCount(group);
+            autoScroll();
         }
 
+        function ensureToolGroup(msgDiv) {
+            // Reuse an existing group if the previous tool call already
+            // created one for this message; otherwise make a new one and
+            // place it just before the .content element.
+            let group = msgDiv.querySelector('.tool-calls-group');
+            if (group) return group;
+            const contentEl = msgDiv.querySelector('.content');
+            group = document.createElement('div');
+            group.className = 'tool-calls-group';
+            group.innerHTML = `
+                <button type="button" class="tcg-header" aria-expanded="false">
+                    <span class="tcg-arrow"></span>
+                    <span class="tcg-label">工具调用</span>
+                    <span class="tcg-count">0</span>
+                </button>
+                <div class="tcg-body"></div>
+            `;
+            group.querySelector('.tcg-header').addEventListener('click', () => {
+                group.classList.toggle('open');
+                const expanded = group.classList.contains('open');
+                group.querySelector('.tcg-header').setAttribute('aria-expanded', String(expanded));
+                // Record that the user has explicitly chosen the state so
+                // the auto-open-on-result logic doesn't fight them.
+                group.dataset.userToggled = 'true';
+            });
+            if (contentEl) {
+                msgDiv.insertBefore(group, contentEl);
+            } else {
+                msgDiv.appendChild(group);
+            }
+            return group;
+        }
+
+        function updateToolGroupCount(group) {
+            const body = group.querySelector('.tcg-body');
+            const count = body.querySelectorAll('.tool-badge').length;
+            const countEl = group.querySelector('.tcg-count');
+            if (countEl) countEl.textContent = String(count);
+            // Always keep the group open by default — users want to see
+            // what tools/skills the agent called. They can click the
+            // header to manually collapse if it's too noisy. The only
+            // exception is when restoring from history (userToggled is
+            // set) and the count is large — we respect the saved state
+            // and re-collapse to keep the bubble compact.
+            if (group.dataset.userToggled) return;
+            group.classList.add('open');
+            group.querySelector('.tcg-header').setAttribute('aria-expanded', 'true');
+        }
+
+        function updateToolBadge(msgDiv, evt) {
+            const badges = msgDiv.querySelectorAll('.tool-badge');
+            for (const b of badges) {
+                if (b.dataset.tool === evt.tool && !b.classList.contains('done')) {
+                    b.classList.add('done');
+                    const preview = (evt.preview || '').replace(/\s+/g, ' ').slice(0, 200);
+                    const span = document.createElement('span');
+                    span.className = 'tool-preview';
+                    span.textContent = '→ ' + preview;
+                    b.appendChild(span);
+                    return;
+                }
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // SSE streaming
+        // ----------------------------------------------------------------
+        async function streamChat(message) {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message }),
+            });
+            if (!res.ok || !res.body) {
+                throw new Error('HTTP ' + res.status);
+            }
+
+            const assistantDiv = addMessage('assistant', '');
+            const contentEl = assistantDiv.querySelector('.content');
+
+            // Shared mutable buffer object — both the SSE handler and the
+            // render timer read/write through this same reference.
+            const buf = { text: '', dirty: false };
+            const renderTimer = setInterval(() => {
+                if (buf.dirty) {
+                    contentEl.innerHTML = renderMarkdown(buf.text);
+                    buf.dirty = false;
+                    autoScroll();
+                }
+            }, 120);
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let lineBuf = '';
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    lineBuf += decoder.decode(value, { stream: true });
+                    const lines = lineBuf.split('\n');
+                    lineBuf = lines.pop() ?? '';
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const raw = line.slice(6).trim();
+                        if (!raw || raw === '[DONE]') continue;
+                        let evt;
+                        try { evt = JSON.parse(raw); } catch { continue; }
+                        // HITL pauses the stream until the user clicks a
+                        // modal option; await here so token / tool_call
+                        // events queued after the request are buffered
+                        // and only consumed once the response is posted.
+                        if (evt.event === 'human_input_required') {
+                            await handleHitlEvent(evt);
+                        } else {
+                            handleEvent(evt, assistantDiv, contentEl, buf);
+                        }
+                    }
+                }
+                // Flush any trailing buffered SSE line
+                if (lineBuf.startsWith('data: ')) {
+                    const raw = lineBuf.slice(6).trim();
+                    if (raw && raw !== '[DONE]') {
+                        try {
+                            const evt = JSON.parse(raw);
+                            if (evt.event === 'human_input_required') {
+                                await handleHitlEvent(evt);
+                            } else {
+                                handleEvent(evt, assistantDiv, contentEl, buf);
+                            }
+                        } catch { /* ignore */ }
+                    }
+                }
+            } finally {
+                clearInterval(renderTimer);
+                contentEl.innerHTML = renderMarkdown(buf.text);
+                // Streaming done: drop the pulsing-dot indicator
+                assistantDiv.classList.remove('thinking');
+                autoScroll();
+            }
+        }
+
+        function handleEvent(evt, msgDiv, contentEl, buf) {
+            if (evt.event === 'agent') {
+                setAgentBadge(msgDiv, evt.node);
+            } else if (evt.event === 'token') {
+                if (!buf.firstTokenSeen) {
+                    // First token: drop the "正在生成" placeholder AND
+                    // render synchronously. Otherwise there's a 0–120ms
+                    // window (until the next renderTimer tick) where the
+                    // bubble is empty — the user sees the indicator
+                    // vanish and then nothing for a beat.
+                    buf.firstTokenSeen = true;
+                    const ind = contentEl.querySelector('.generating-indicator');
+                    if (ind) ind.remove();
+                    buf.text = evt.content;
+                    contentEl.innerHTML = renderMarkdown(buf.text);
+                    autoScroll();
+                } else {
+                    buf.text += evt.content;
+                    buf.dirty = true;
+                }
+            } else if (evt.event === 'tool_call') {
+                insertToolBadge(msgDiv, evt);
+            } else if (evt.event === 'tool_result') {
+                updateToolBadge(msgDiv, evt);
+                const fileTools = ['make_excel', 'make_ppt'];
+                if (fileTools.includes(evt.tool)) {
+                    refreshFiles(true);
+                }
+            } else if (evt.event === 'error') {
+                // Errors also bypass the indicator so the message isn't
+                // stuck on "正在生成" with no body.
+                if (!buf.firstTokenSeen) {
+                    buf.firstTokenSeen = true;
+                    const ind = contentEl.querySelector('.generating-indicator');
+                    if (ind) ind.remove();
+                }
+                buf.text += `\n\n错误: ${evt.message}`;
+                buf.dirty = true;
+            } else if (evt.event === 'done') {
+                // Close handshake happens via fetch read returning done
+            }
+            // human_input_required is awaited at the stream loop level
+        }
+
+        // ----------------------------------------------------------------
+        // HITL modal
+        // ----------------------------------------------------------------
+        const hitlOverlay   = document.getElementById('hitlOverlay');
+        const hitlQuestion  = document.getElementById('hitlQuestion');
+        const hitlOptions   = document.getElementById('hitlOptions');
+        const hitlFreeform  = document.getElementById('hitlFreeform');
+        const hitlFreeInput = document.getElementById('hitlFreeformInput');
+        const hitlFreeBtn   = document.getElementById('hitlFreeformSubmit');
+        const hitlPending   = document.getElementById('hitlPending');
+
+        function showHitlModal({ question, options }) {
+            return new Promise((resolve) => {
+                hitlQuestion.textContent = question || '';
+                hitlOptions.innerHTML = '';
+                const isFreeform = !options || options.length === 0;
+
+                if (isFreeform) {
+                    hitlFreeform.hidden = false;
+                    hitlOptions.style.display = 'none';
+                    hitlFreeInput.value = '';
+                    setTimeout(() => hitlFreeInput.focus(), 50);
+
+                    const submitFree = () => {
+                        const v = hitlFreeInput.value.trim();
+                        if (!v) return;
+                        close(resolve, v);
+                    };
+                    hitlFreeBtn.onclick = submitFree;
+                    hitlFreeInput.onkeydown = (e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); submitFree(); }
+                    };
+                } else {
+                    hitlFreeform.hidden = true;
+                    hitlOptions.style.display = 'flex';
+                    options.forEach((opt, i) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'hitl-option' + (i === 0 ? ' primary' : '');
+                        btn.textContent = opt;
+                        btn.onclick = () => close(resolve, opt);
+                        hitlOptions.appendChild(btn);
+                    });
+                }
+
+                hitlOverlay.classList.add('active');
+
+                function close(r, value) {
+                    hitlOverlay.classList.remove('active');
+                    hitlPending.classList.remove('active');
+                    hitlFreeBtn.onclick = null;
+                    hitlFreeInput.onkeydown = null;
+                    hitlOptions.querySelectorAll('button').forEach(b => b.onclick = null);
+                    r(value);
+                }
+            });
+        }
+
+        function showHitlPending() { hitlPending.classList.add('active'); }
+        function hideHitlPending() { hitlPending.classList.remove('active'); }
+
+        async function postHitlResponse(requestId, response) {
+            try {
+                const res = await fetch('/chat/respond', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ request_id: requestId, response }),
+                });
+                if (!res.ok) {
+                    console.warn('hitl respond failed', res.status);
+                    return false;
+                }
+                const data = await res.json();
+                return data.ok === true;
+            } catch (e) {
+                console.warn('hitl respond error', e);
+                return false;
+            }
+        }
+
+        async function handleHitlEvent(evt) {
+            // Returns true if the user responded (resume stream),
+            // or false if the request was already gone (cancelled, error).
+            showHitlPending();
+            const userChoice = await showHitlModal({
+                question: evt.question,
+                options: evt.options,
+            });
+            const ok = await postHitlResponse(evt.request_id, userChoice);
+            hideHitlPending();
+            if (!ok) {
+                // Backend may have already given up on us; surface a hint
+                console.warn('HITL response not accepted by server');
+            }
+            return ok;
+        }
+
+        // ----------------------------------------------------------------
+        // Sending
+        // ----------------------------------------------------------------
         async function sendMessage() {
             const message = inputEl.value.trim();
-            if (!message || isStreaming) return;
-
-            isStreaming = true;
+            if (!message || state.isStreaming) return;
+            state.isStreaming = true;
             sendBtn.disabled = true;
             inputEl.value = '';
 
             addMessage('user', message);
-            showTyping();
 
             try {
-                const res = await fetch(`/chat/stream`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message })
-                });
-
-                hideTyping();
-
-                const assistantDiv = addMessage('assistant', '');
-                const contentEl = assistantDiv.appendChild(document.createElement('div'));
-                let currentAgent = null;
-
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    const text = decoder.decode(value);
-                    const lines = text.split('\n');
-
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const data = line.slice(6);
-                            if (data === '[DONE]') continue;
-
-                            try {
-                                const json = JSON.parse(data);
-                                if (json.node) {
-                                    currentAgent = json.node;
-                                    assistantDiv.className = `message assistant`;
-                                    const tag = assistantDiv.querySelector('.agent-tag') || document.createElement('div');
-                                    tag.className = `agent-tag ${currentAgent}`;
-                                    tag.textContent = currentAgent;
-                                    if (!assistantDiv.querySelector('.agent-tag')) {
-                                        assistantDiv.insertBefore(tag, assistantDiv.firstChild);
-                                    }
-                                }
-                                if (json.content) {
-                                    contentEl.textContent += json.content;
-                                    messagesEl.scrollTop = messagesEl.scrollHeight;
-                                }
-                                if (json.error) {
-                                    contentEl.textContent = `错误: ${json.error}`;
-                                }
-                            } catch {}
-                        }
-                    }
-                }
-
-                // 检查是否有生成的文件
-                checkForNewFiles();
-
+                await streamChat(message);
+                saveCurrentConversation();
+                renderHistory();
             } catch (err) {
-                hideTyping();
                 addMessage('assistant', `连接失败: ${err.message}`);
             } finally {
-                isStreaming = false;
+                state.isStreaming = false;
                 sendBtn.disabled = false;
             }
-        }
-
-        async function checkForNewFiles() {
-            try {
-                const res = await fetch(`/api/files`);
-                if (res.ok) {
-                    const data = await res.json();
-                    const filesList = document.getElementById('filesList');
-
-                    if (data.files && data.files.length > 0) {
-                        filesList.innerHTML = '';
-
-                        data.files.forEach(file => {
-                            const icon = file.type === 'xlsx' ? '📊' : '📽️';
-
-                            const item = document.createElement('div');
-                            item.className = 'file-item';
-                            item.innerHTML = `
-                                <span class="icon">${icon}</span>
-                                <a href="${file.url}" target="_blank">${file.name}</a>
-                                <a href="${file.url}" download class="download-link">下载</a>
-                            `;
-                            filesList.appendChild(item);
-                        });
-                    }
-                }
-            } catch {}
         }
 
         function handleKeyPress(e) {
@@ -538,10 +2067,102 @@
             }
         }
 
-        // 初始化
+        // ----------------------------------------------------------------
+        // Files
+        // ----------------------------------------------------------------
+        let _refreshFilesTimer = null;
+        function refreshFiles(highlightNew) {
+            // Debounce: a multi-tool run can fire tool_result several
+            // times within seconds. Coalesce into one fetch per 400ms
+            // so we don't hammer /api/files.
+            if (_refreshFilesTimer) clearTimeout(_refreshFilesTimer);
+            _refreshFilesTimer = setTimeout(() => {
+                _refreshFilesTimer = null;
+                _refreshFilesNow(highlightNew);
+            }, 400);
+        }
+        async function _refreshFilesNow(highlightNew) {
+            try {
+                const res = await fetch('/api/files');
+                if (!res.ok) return;
+                const data = await res.json();
+                const filesList = document.getElementById('filesList');
+                if (!data.files || data.files.length === 0) {
+                    filesList.innerHTML = '<div class="empty-files">暂无生成的文件</div>';
+                    state.seenFiles = new Set();
+                    return;
+                }
+                filesList.innerHTML = '';
+                for (const file of data.files) {
+                    const isExcel = file.type === 'xlsx';
+                    const icon = isExcel ? '📊' : '🎞';
+                    const item = document.createElement('div');
+                    item.className = 'file-item' + (isExcel ? '' : ' ppt');
+                    if (highlightNew && !state.seenFiles.has(file.name)) {
+                        item.classList.add('flash');
+                    }
+                    item.innerHTML = `
+                        <span class="icon">${icon}</span>
+                        <a href="${file.url}" target="_blank" class="file-name">${escapeHtml(file.name)}</a>
+                        <a href="${file.url}" download class="download-link">下载</a>
+                    `;
+                    filesList.appendChild(item);
+                }
+                state.seenFiles = new Set(data.files.map(f => f.name));
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Health
+        // ----------------------------------------------------------------
+        async function checkHealth() {
+            try {
+                const res = await fetch('/health');
+                const ok = res.ok;
+                statusEl.classList.toggle('offline', !ok);
+                if (statusTextEl) statusTextEl.textContent = ok ? '在线' : '离线';
+            } catch {
+                statusEl.classList.add('offline');
+                if (statusTextEl) statusTextEl.textContent = '离线';
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Init
+        // ----------------------------------------------------------------
+        state.conversations = loadHistory();
+        if (state.conversations.length === 0) {
+            newConversation();
+        } else {
+            // Open the most recent conversation
+            const last = state.conversations[state.conversations.length - 1];
+            state.currentId = last.id;
+            clearMessages();
+            for (const m of last.messages) addMessage(m.role, m.content, m.agent, m.toolCalls || []);
+            renderHistory();
+        }
+
+        document.getElementById('newConvBtn').addEventListener('click', () => {
+            if (state.isStreaming) return;
+            newConversation();
+        });
+
+        // Safety net: catch any pending messages on tab close / refresh.
+        // `pagehide` fires on both refresh and tab close; `beforeunload` is
+        // a fallback for browsers that may not fire pagehide.
+        window.addEventListener('pagehide', () => {
+            if (state.currentId) saveCurrentConversation();
+        });
+        window.addEventListener('beforeunload', () => {
+            if (state.currentId) saveCurrentConversation();
+        });
+
         checkHealth();
         setInterval(checkHealth, 30000);
-        checkForNewFiles();
+        refreshFiles(false);
     </script>
 </body>
+
 </html>

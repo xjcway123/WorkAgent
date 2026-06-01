@@ -1,0 +1,18 @@
+# Web 框架
+fastapi>=0.110
+uvicorn[standard]>=0.27
+
+# LangChain / LangGraph 多智能体栈
+langchain>=1.0
+langchain-core>=0.3
+langchain-openai>=0.2
+langgraph>=1.0
+langgraph-supervisor>=0.0.10
+
+# Office 文档生成
+python-pptx>=1.0
+openpyxl>=3.1
+
+# 配置 / 工具
+python-dotenv>=1.0
+pyyaml>=6.0
