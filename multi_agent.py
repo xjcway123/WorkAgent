@@ -26,6 +26,9 @@ from openpyxl.styles import Font
 
 load_dotenv() 
 
+from skill_loader import SkillLoader
+SKILL_LOADER = SkillLoader(SKILLS_DIR)
+
 # ----------------------------------------------------------------------
 # 1. 模型:指向火山方舟(OpenAI 兼容),model 填你的接入点 ID
 # ----------------------------------------------------------------------
