@@ -33,7 +33,7 @@ SKILL_LOADER = SkillLoader(SKILLS_DIR)
 # 1. 模型:指向火山方舟(OpenAI 兼容),model 填你的接入点 ID
 # ----------------------------------------------------------------------
 model = ChatOpenAI(
-    model=os.environ["MODEL_NAME"],                                # TODO: 换成你的接入点ID / 模型名
+    model=os.environ["MODEL_NAME"],
     base_url=os.environ["BASE_URL"],
     api_key=os.environ["ARK_API_KEY"],
     temperature=0,
